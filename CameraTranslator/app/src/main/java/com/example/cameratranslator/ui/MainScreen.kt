@@ -8,6 +8,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.cameratranslator.camera.CameraPreviewScreen
 import com.example.cameratranslator.core.MainViewModel
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Info
+
 import com.example.cameratranslator.overlay.TranslationOverlay
 
 @Composable
@@ -19,18 +29,42 @@ fun MainScreen(viewModel: MainViewModel, onNavigateToPicker: () -> Unit, onNavig
 
     Box(modifier = Modifier.fillMaxSize()) {
         CameraPreviewScreen(viewModel)
-        TranslationOverlay(textElements, showOriginal)
+        TranslationOverlay(viewModel, textElements, showOriginal)
 
         // Top Controls
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(16.dp)
+                .align(Alignment.TopCenter),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Auto -> 繁體中文", color = MaterialTheme.colorScheme.onSurface)
-            Button(onClick = { viewModel.toggleFlashlight() }) { Text("手電筒") }
-            Button(onClick = onNavigateToSettings) { Text("設定") }
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                shape = CircleShape
+            ) {
+                Text(
+                    text = "自動偵測 → 繁體中文",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SmallFloatingActionButton(
+                    onClick = { viewModel.toggleFlashlight() },
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                ) {
+                    Text("🔦")
+                }
+                SmallFloatingActionButton(
+                    onClick = onNavigateToSettings,
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                ) {
+                    Icon(Icons.Default.Settings, contentDescription = "設定")
+                }
+            }
         }
 
         // Bottom Controls
@@ -38,17 +72,20 @@ fun MainScreen(viewModel: MainViewModel, onNavigateToPicker: () -> Unit, onNavig
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(32.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+                .padding(bottom = 32.dp, start = 16.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(onClick = onNavigateToPicker) { Text("相簿") }
-            Button(onClick = {
-                isPaused = !isPaused
-                viewModel.isPaused = isPaused
-            }) {
-                Text(if (isPaused) "恢復" else "暫停")
+            FilledTonalButton(onClick = onNavigateToPicker) { Text("相簿") }
+            FloatingActionButton(
+                onClick = {
+                    isPaused = !isPaused
+                    viewModel.isPaused = isPaused
+                }
+            ) {
+                Icon(if (isPaused) Icons.Default.PlayArrow else Icons.Default.Search, contentDescription = if (isPaused) "恢復" else "暫停")
             }
-            Button(onClick = {
+            FilledTonalButton(onClick = {
                 showOriginal = !showOriginal
                 viewModel.showOriginal = showOriginal
             }) {

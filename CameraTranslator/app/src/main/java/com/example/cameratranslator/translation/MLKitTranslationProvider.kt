@@ -5,6 +5,8 @@ import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.common.model.DownloadConditions
+import com.google.mlkit.nl.translate.TranslateRemoteModel
+import com.google.mlkit.common.model.RemoteModelManager
 import kotlinx.coroutines.tasks.await
 
 class MLKitTranslationProvider : TranslationProvider {
@@ -40,6 +42,18 @@ class MLKitTranslationProvider : TranslationProvider {
         val client = Translation.getClient(options)
         val conditions = DownloadConditions.Builder().build()
         client.downloadModelIfNeeded(conditions).await()
+    }
+
+    override suspend fun isModelDownloaded(languageCode: String): Boolean {
+        val langCode = mapLanguageCode(languageCode)
+        val model = TranslateRemoteModel.Builder(langCode).build()
+        val modelManager = RemoteModelManager.getInstance()
+        return try {
+            val isDownloaded = modelManager.isModelDownloaded(model).await()
+            isDownloaded
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun mapLanguageCode(lang: String): String {

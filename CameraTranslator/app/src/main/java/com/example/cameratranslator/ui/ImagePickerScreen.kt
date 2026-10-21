@@ -61,7 +61,7 @@ fun ImagePickerScreen(viewModel: MainViewModel) {
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize()
                 )
-                TranslationOverlay(textElements = textElements, showOriginal = false)
+                TranslationOverlay(viewModel = viewModel, textElements = textElements, showOriginal = false)
             }
         }
     }

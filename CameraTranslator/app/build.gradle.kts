@@ -48,6 +48,8 @@ android {
 }
 
 dependencies {
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation("com.google.mlkit:language-id:17.0.4")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
@@ -100,11 +102,15 @@ dependencies {
 }
 
 dependencies {
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation("com.google.mlkit:language-id:17.0.4")
     implementation("cz.adaptech.tesseract4android:tesseract4android:4.5.0")
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
 }
 
 dependencies {
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation("com.google.mlkit:language-id:17.0.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 }
