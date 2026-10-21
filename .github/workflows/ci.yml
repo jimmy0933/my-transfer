@@ -15,10 +15,10 @@ jobs:
         working-directory: CameraTranslator
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: set up JDK 17
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
@@ -34,7 +34,7 @@ jobs:
       run: ./gradlew assembleDebug
 
     - name: Upload Debug APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: CameraTranslator-debug
         path: CameraTranslator/app/build/outputs/apk/debug/app-debug.apk
@@ -64,7 +64,7 @@ jobs:
 
     - name: Upload Release APK
       if: env.has_secret == 'true'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: CameraTranslator-release
         path: CameraTranslator/app/build/outputs/apk/release/app-release.apk
