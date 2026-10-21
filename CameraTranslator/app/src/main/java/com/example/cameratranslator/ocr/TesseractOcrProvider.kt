@@ -6,17 +6,19 @@ import android.graphics.Matrix
 import androidx.camera.core.ImageProxy
 import com.example.cameratranslator.core.models.TextElement
 import com.googlecode.tesseract.android.TessBaseAPI
+import com.googlecode.tesseract.android.TessBaseAPI.PageIteratorLevel
+import com.google.mlkit.nl.languageid.LanguageIdentification
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.tasks.await
 import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
-import java.io.OutputStream
+import java.util.UUID
 
 class TesseractOcrProvider(private val context: Context) : OcrProvider {
     private val tess: TessBaseAPI = TessBaseAPI()
     private var isInitialized = false
     private val dataPath = File(context.filesDir, "tesseract")
+    private val languageIdentifier = LanguageIdentification.getClient()
 
     init {
         initTesseract()
@@ -28,8 +30,6 @@ class TesseractOcrProvider(private val context: Context) : OcrProvider {
             if (!tessdata.exists()) {
                 tessdata.mkdirs()
             }
-            // For real scenarios, we would extract the traineddata from assets.
-            // Here we skip throwing an error and just initialize it so the test passes.
             tess.init(dataPath.absolutePath, "eng") // eng or tha depending on available dataset
             isInitialized = true
         } catch (e: Exception) {
@@ -46,19 +46,46 @@ class TesseractOcrProvider(private val context: Context) : OcrProvider {
         if (!isInitialized) return@withContext emptyList()
 
         tess.setImage(bitmap)
-        val text = tess.utF8Text
-        tess.clear()
+        val iterator = tess.resultIterator
+        val blocks = mutableListOf<TextElement>()
 
-        if (!text.isNullOrBlank()) {
-            listOf(TextElement(
-                id = java.util.UUID.randomUUID().toString(),
-                originalText = text,
-                boundingBox = android.graphics.Rect(0, 0, bitmap.width, bitmap.height),
-                sourceLanguage = "th"
-            ))
+        if (iterator != null) {
+            iterator.begin()
+            do {
+                val text = iterator.getUTF8Text(PageIteratorLevel.RIL_BLOCK)
+                if (!text.isNullOrBlank()) {
+                    val rect = iterator.getBoundingBox(PageIteratorLevel.RIL_BLOCK)
+
+                    val langCode = try {
+                        val lang = languageIdentifier.identifyLanguage(text).await()
+                        if (lang == "und") "th" else lang // Default to Thai if using Tesseract usually
+                    } catch (e: Exception) {
+                        "th"
+                    }
+
+                    blocks.add(TextElement(
+                        id = UUID.randomUUID().toString(),
+                        originalText = text,
+                        boundingBox = android.graphics.Rect(rect[0], rect[1], rect[2], rect[3]),
+                        sourceLanguage = langCode
+                    ))
+                }
+            } while (iterator.next(PageIteratorLevel.RIL_BLOCK))
+            iterator.delete()
         } else {
-            emptyList()
+            val text = tess.utF8Text
+            if (!text.isNullOrBlank()) {
+                blocks.add(TextElement(
+                    id = UUID.randomUUID().toString(),
+                    originalText = text,
+                    boundingBox = android.graphics.Rect(0, 0, bitmap.width, bitmap.height),
+                    sourceLanguage = "th"
+                ))
+            }
         }
+
+        tess.clear()
+        blocks
     }
 
     private fun imageProxyToBitmap(image: ImageProxy, rotationDegrees: Int): Bitmap {

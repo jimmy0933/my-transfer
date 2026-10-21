@@ -19,7 +19,7 @@ fun MainAppNavigation(viewModel: MainViewModel) {
             ImagePickerScreen(viewModel = viewModel)
         }
         "Settings" -> {
-            SettingsScreen()
+            SettingsScreen(viewModel = viewModel, onNavigateBack = { currentScreen = "Camera" })
         }
     }
 }
