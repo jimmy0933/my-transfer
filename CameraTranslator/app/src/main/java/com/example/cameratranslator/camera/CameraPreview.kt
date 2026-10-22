@@ -6,6 +6,7 @@ import android.view.ScaleGestureDetector
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.UseCaseGroup
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -69,11 +70,15 @@ fun CameraPreviewScreen(viewModel: MainViewModel) {
 
                     try {
                         cameraProvider.unbindAll()
+                        // Share a ViewPort so ImageAnalysis cropRect matches visible PreviewView.
+                        val group = UseCaseGroup.Builder()
+                            .addUseCase(preview)
+                            .addUseCase(imageAnalyzer)
+                        previewView.viewPort?.let { group.setViewPort(it) }
                         val camera = cameraProvider.bindToLifecycle(
                             lifecycleOwner,
                             CameraSelector.DEFAULT_BACK_CAMERA,
-                            preview,
-                            imageAnalyzer
+                            group.build()
                         )
 
                         viewModel.cameraControl = camera.cameraControl
