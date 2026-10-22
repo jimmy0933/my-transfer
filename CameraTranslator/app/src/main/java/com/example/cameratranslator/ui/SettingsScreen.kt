@@ -20,7 +20,7 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
         Text("離線翻譯模型會在首次翻譯時下載。首次使用請保持網路連線。")
         Spacer(Modifier.weight(1f))
         Button(
-            onClick = { viewModel.setOverlayOpacity(opacity); onBack() },
+            onClick = { viewModel.saveOverlayOpacity(opacity); onBack() },
             modifier = Modifier.fillMaxWidth()
         ) { Text("確定並儲存") }
     }
