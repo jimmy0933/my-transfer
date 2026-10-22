@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,7 +29,7 @@ fun TranslationOverlay(
     opacity: Float = 0.88f
 ) {
     val density = LocalDensity.current
-    BoxWithConstraints(modifier = Modifier) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenWidth = with(density) { maxWidth.toPx() }
         val screenHeight = with(density) { maxHeight.toPx() }
         textElements.forEach { element ->
