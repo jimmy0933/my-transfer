@@ -6,46 +6,95 @@ import androidx.camera.core.ImageProxy
 import com.example.cameratranslator.core.models.TextElement
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.TextRecognizer
 import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.tasks.await
-import java.util.UUID
+import kotlin.math.max
+import kotlin.math.min
 
+/**
+ * Latin and Japanese recognizers are both required. The old implementation
+ * ran only Japanese and incorrectly labeled every result "ja/en".
+ */
 class MLKitOcrProvider : OcrProvider {
-    // Currently initializing only Latin and Japanese as per defaults.
-    private val latinRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-    private val japaneseRecognizer = TextRecognition.getClient(JapaneseTextRecognizerOptions.Builder().build())
+    private val latin = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private val japanese = TextRecognition.getClient(JapaneseTextRecognizerOptions.Builder().build())
+    private val japaneseChars = Regex("[\\u3040-\\u30ff\\u3400-\\u9fff]")
 
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     override suspend fun recognizeText(image: ImageProxy, rotationDegrees: Int): List<TextElement> {
-        val mediaImage = image.image
-        if (mediaImage != null) {
-            val inputImage = InputImage.fromMediaImage(mediaImage, rotationDegrees)
-            return processImage(inputImage)
+        val media = image.image ?: return emptyList()
+        val input = InputImage.fromMediaImage(media, rotationDegrees)
+        val crop = rotatedCrop(image.cropRect, image.width, image.height, rotationDegrees)
+        val candidates = extract(input)
+        return candidates.mapNotNull { element ->
+            val rect = element.boundingBox ?: return@mapNotNull null
+            val inside = Rect(rect)
+            if (!inside.intersect(crop)) return@mapNotNull null
+            element.copy(
+                boundingBox = Rect(inside.left - crop.left, inside.top - crop.top,
+                    inside.right - crop.left, inside.bottom - crop.top),
+                imageWidth = crop.width().coerceAtLeast(1),
+                imageHeight = crop.height().coerceAtLeast(1)
+            )
         }
-        return emptyList()
     }
 
-    override suspend fun recognizeTextFromBitmap(bitmap: Bitmap): List<TextElement> {
-        val inputImage = InputImage.fromBitmap(bitmap, 0)
-        return processImage(inputImage)
+    override suspend fun recognizeTextFromBitmap(bitmap: Bitmap): List<TextElement> =
+        extract(InputImage.fromBitmap(bitmap, 0)).map {
+            it.copy(imageWidth = bitmap.width, imageHeight = bitmap.height)
+        }
+
+    private suspend fun extract(input: InputImage): List<TextElement> {
+        val all = mutableListOf<TextElement>()
+        // Both engines run independently: an error in one must not discard the other.
+        read(japanese, input).forEach { addOrReplace(all, it) }
+        read(latin, input).forEach { addOrReplace(all, it) }
+        return all.take(24)
     }
 
-    private suspend fun processImage(image: InputImage): List<TextElement> {
-        // Attempt Japanese recognition first; if results are lacking, could fallback or run concurrently.
-        // For simplicity, we can run both and merge, but running Japanese usually includes Latin alphabet reasonably well.
-        return try {
-            val result = japaneseRecognizer.process(image).await()
-            result.textBlocks.map { block ->
-                TextElement(
-                    id = UUID.randomUUID().toString(),
-                    originalText = block.text,
-                    boundingBox = block.boundingBox,
-                    sourceLanguage = "ja/en" // Defaulting label; Language detection can be added
+    private suspend fun read(recognizer: TextRecognizer, input: InputImage): List<TextElement> =
+        try {
+            recognizer.process(input).await().textBlocks.mapNotNull { block ->
+                val text = block.text.trim()
+                val bounds = block.boundingBox
+                if (bounds == null || text.isBlank()) null else TextElement(
+                    id = text.hashCode().toString() + ":" + bounds.left / 24 + ":" + bounds.top / 24,
+                    originalText = text,
+                    boundingBox = bounds,
+                    sourceLanguage = if (japaneseChars.containsMatchIn(text)) "ja" else "en"
                 )
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
+
+    private fun addOrReplace(all: MutableList<TextElement>, candidate: TextElement) {
+        val box = candidate.boundingBox ?: return
+        val index = all.indexOfFirst { existing ->
+            val other = existing.boundingBox ?: return@indexOfFirst false
+            val w = max(0, min(other.right, box.right) - max(other.left, box.left))
+            val h = max(0, min(other.bottom, box.bottom) - max(other.top, box.top))
+            val minArea = min(other.width() * other.height(), box.width() * box.height())
+            minArea > 0 && w.toFloat() * h / minArea > 0.45f
+        }
+        if (index < 0) {
+            all.add(candidate)
+            return
+        }
+        val existing = all[index]
+        val replace = (candidate.sourceLanguage == "ja" && existing.sourceLanguage != "ja") ||
+            (candidate.sourceLanguage == existing.sourceLanguage &&
+                candidate.originalText.length > existing.originalText.length)
+        if (replace) all[index] = candidate
     }
+
+    private fun rotatedCrop(rect: Rect, width: Int, height: Int, rotation: Int): Rect =
+        when (rotation) {
+            90 -> Rect(height - rect.bottom, rect.left, height - rect.top, rect.right)
+            180 -> Rect(width - rect.right, height - rect.bottom, width - rect.left, height - rect.top)
+            270 -> Rect(rect.top, width - rect.right, rect.bottom, width - rect.left)
+            else -> Rect(rect)
+        }
 }

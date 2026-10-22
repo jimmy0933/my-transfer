@@ -5,23 +5,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.cameratranslator.core.MainViewModel
 
 @Composable
-fun SettingsScreen() {
-    var transparency by remember { mutableFloatStateOf(0.5f) }
-
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("設定", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text("翻譯框透明度")
-        Slider(
-            value = transparency,
-            onValueChange = { transparency = it },
-            valueRange = 0f..1f
-        )
-
-        // Settings could include offline models download status
-        Text("離線模型狀態: 繁體中文已下載 (Demo)")
+fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
+    var opacity by remember { mutableFloatStateOf(viewModel.overlayOpacity) }
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        TextButton(onClick = onBack) { Text("← 返回相機") }
+        Text("翻譯設定", style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(24.dp))
+        Text("翻譯框不透明度：" + (opacity * 100).toInt() + "%")
+        Slider(value = opacity, onValueChange = { opacity = it }, valueRange = 0.35f..1f)
+        Spacer(Modifier.height(12.dp))
+        Text("離線翻譯模型會在首次翻譯時下載。首次使用請保持網路連線。")
+        Spacer(Modifier.weight(1f))
+        Button(
+            onClick = { viewModel.setOverlayOpacity(opacity); onBack() },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("確定並儲存") }
     }
 }
