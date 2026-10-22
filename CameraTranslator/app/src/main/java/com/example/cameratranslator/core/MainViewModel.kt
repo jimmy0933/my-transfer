@@ -46,7 +46,7 @@ class MainViewModel @Inject constructor(
     var overlayOpacity by mutableFloatStateOf(preferences.getFloat("overlay_opacity", 0.88f))
         private set
 
-    fun setOverlayOpacity(value: Float) {
+    fun saveOverlayOpacity(value: Float) {
         overlayOpacity = value.coerceIn(0.35f, 1f)
         preferences.edit().putFloat("overlay_opacity", overlayOpacity).apply()
     }
