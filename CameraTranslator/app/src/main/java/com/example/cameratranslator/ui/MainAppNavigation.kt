@@ -1,25 +1,20 @@
 package com.example.cameratranslator.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.*
 import com.example.cameratranslator.core.MainViewModel
 
 @Composable
 fun MainAppNavigation(viewModel: MainViewModel) {
-    var currentScreen by remember { mutableStateOf("Camera") }
-
-    when (currentScreen) {
-        "Camera" -> {
-            MainScreen(
-                viewModel = viewModel,
-                onNavigateToPicker = { currentScreen = "Picker" },
-                onNavigateToSettings = { currentScreen = "Settings" }
-            )
-        }
-        "Picker" -> {
-            ImagePickerScreen(viewModel = viewModel)
-        }
-        "Settings" -> {
-            SettingsScreen()
-        }
+    var screen by remember { mutableStateOf("Camera") }
+    BackHandler(enabled = screen != "Camera") { screen = "Camera" }
+    when (screen) {
+        "Camera" -> MainScreen(
+            viewModel = viewModel,
+            onNavigateToPicker = { screen = "Picker" },
+            onNavigateToSettings = { screen = "Settings" }
+        )
+        "Picker" -> ImagePickerScreen(viewModel = viewModel)
+        "Settings" -> SettingsScreen(viewModel = viewModel, onBack = { screen = "Camera" })
     }
 }

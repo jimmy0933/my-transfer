@@ -7,5 +7,7 @@ data class TextElement(
     val originalText: String,
     val translatedText: String? = null,
     val boundingBox: Rect?,
-    val sourceLanguage: String = "auto"
+    val sourceLanguage: String = "en",
+    val imageWidth: Int = 0,
+    val imageHeight: Int = 0
 )
